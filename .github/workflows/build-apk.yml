@@ -8,45 +8,27 @@ on:
 
 jobs:
   build:
-    name: Build Calculator APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
 
-      # دریافت فایل‌های Repository
       - name: Checkout
         uses: actions/checkout@v4
 
-      # نصب Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # نصب Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: "temurin"
           java-version: "17"
 
-      # آماده‌سازی Android SDK
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      # نصب ابزارهای مورد نیاز Android
-      - name: Install Android SDK
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-          yes | sdkmanager --licenses
-
-      # نصب وابستگی‌های Linux
-      - name: Install Linux dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             zip \
@@ -54,7 +36,6 @@ jobs:
             autoconf \
             automake \
             libtool \
-            libltdl-dev \
             pkg-config \
             zlib1g-dev \
             libncurses5-dev \
@@ -63,53 +44,36 @@ jobs:
             libffi-dev \
             libssl-dev
 
-      # نصب Buildozer
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip
           python -m pip install buildozer
+          python -m pip install "cython<3"
 
-      # بررسی فایل‌های پروژه
-      - name: Check project
+      - name: Check files
         run: |
-          echo "===== PROJECT FILES ====="
+          echo "===== FILES ====="
           ls -lah
+          echo "================="
 
-          echo "===== CHECK main.py ====="
           test -f main.py
-
-          echo "main.py found!"
-
-          echo "===== CHECK buildozer.spec ====="
           test -f buildozer.spec
 
-          echo "buildozer.spec found!"
+          echo "main.py OK"
+          echo "buildozer.spec OK"
 
-      # اطمینان از وجود AIDL
-      - name: Check Android tools
-        run: |
-          echo "===== ANDROID SDK ====="
-          echo $ANDROID_HOME
-
-          echo "===== AIDL ====="
-          find "$ANDROID_HOME" -name aidl -type f -print
-
-          echo "===== BUILD TOOLS ====="
-          ls -lah "$ANDROID_HOME/build-tools/35.0.0"
-
-      # ساخت APK
       - name: Build APK
+        env:
+          P4A_RELEASE_KEYSTORE: ""
         run: |
           buildozer -v android debug
 
-      # پیدا کردن APK
-      - name: Find APK
+      - name: Show APK
         if: always()
         run: |
-          echo "===== APK FILES ====="
-          find . -name "*.apk" -type f -print
+          echo "===== APK ====="
+          find . -type f -name "*.apk" -print
 
-      # قرار دادن APK به عنوان Artifact
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
