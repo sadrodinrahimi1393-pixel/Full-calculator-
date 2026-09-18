@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -26,7 +25,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Linux dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -52,48 +51,38 @@ jobs:
 
       - name: Find project
         run: |
-          echo "===== REPOSITORY ====="
-          find . -maxdepth 4 -type f | sort
-
-          echo "===== SEARCH BUILDOZER ====="
-
           SPEC=$(find . -name "buildozer.spec" -type f | head -1)
 
           if [ -z "$SPEC" ]; then
-            echo "ERROR: buildozer.spec NOT FOUND"
+            echo "ERROR: buildozer.spec not found"
             exit 1
           fi
 
           PROJECT_DIR=$(dirname "$SPEC")
 
-          echo "buildozer.spec found:"
-          echo "$SPEC"
-
-          echo "Project directory:"
-          echo "$PROJECT_DIR"
-
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          echo "Project found:"
+          echo "$PROJECT_DIR"
 
       - name: Check project
         run: |
-          echo "===== PROJECT ====="
           ls -lah "$PROJECT_DIR"
 
           test -f "$PROJECT_DIR/buildozer.spec"
           test -f "$PROJECT_DIR/main.py"
 
-          echo "main.py found!"
-          echo "buildozer.spec found!"
-
-      - name: Clean Buildozer
+      - name: Clean old Buildozer files
         run: |
           rm -rf "$PROJECT_DIR/.buildozer"
           rm -rf "$PROJECT_DIR/bin"
+          rm -rf "$HOME/.buildozer"
 
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
-          buildozer -v android debug
+
+          yes | buildozer -v android debug
 
       - name: Find APK
         if: always()
@@ -106,6 +95,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: calculator-apk
-          path: |
-            **/bin/*.apk
+          path: "**/bin/*.apk"
           if-no-files-found: error
