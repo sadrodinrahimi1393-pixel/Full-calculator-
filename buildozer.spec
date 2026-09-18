@@ -9,7 +9,6 @@ orientation = portrait
 requirements = python3,kivy,sympy,mpmath
 android.api = 35
 android.minapi = 23
-android.sdk = 35
 android.ndk = 28c
 android.entrypoint = org.kivy.android.PythonActivity
 android.apptheme = @android:style/Theme.Material.Light.NoActionBar
