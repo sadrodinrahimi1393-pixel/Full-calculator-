@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -23,26 +22,40 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install system packages
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
+      - name: Check AIDL
+        run: |
+          echo "Checking AIDL..."
+          ls -la "$ANDROID_HOME/build-tools/35.0.0/"
+          test -f "$ANDROID_HOME/build-tools/35.0.0/aidl"
+          echo "AIDL FOUND!"
+
+      - name: Install Linux dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             git \
             zip \
             unzip \
-            openjdk-17-jdk \
-            python3-pip \
             autoconf \
+            automake \
             libtool \
             pkg-config \
             zlib1g-dev \
             libncurses5-dev \
             libncursesw5-dev \
-            libtinfo5 \
             cmake \
             libffi-dev \
-            libssl-dev \
-            automake
+            libssl-dev
 
       - name: Install Buildozer
         run: |
@@ -52,9 +65,6 @@ jobs:
 
       - name: Find project
         run: |
-          echo "===== PROJECT FILES ====="
-          find . -maxdepth 3 -type f | sort
-
           SPEC=$(find . -name "buildozer.spec" -type f | head -1)
 
           if [ -z "$SPEC" ]; then
@@ -63,32 +73,32 @@ jobs:
           fi
 
           PROJECT_DIR=$(dirname "$SPEC")
-
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-          echo "Project:"
-          echo "$PROJECT_DIR"
+          echo "Project: $PROJECT_DIR"
 
       - name: Check project
         run: |
           cd "$PROJECT_DIR"
-
-          echo "===== PROJECT ====="
           ls -lah
-
           test -f main.py
           test -f buildozer.spec
+
+      - name: Clean old Buildozer files
+        run: |
+          rm -rf "$PROJECT_DIR/.buildozer"
+          rm -rf "$PROJECT_DIR/bin"
+          rm -rf "$HOME/.buildozer"
 
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
-
           buildozer -v android debug
 
       - name: Find APK
         if: always()
         run: |
-          echo "===== APK ====="
+          echo "===== APK FILES ====="
           find . -type f -name "*.apk" -print
 
       - name: Upload APK
