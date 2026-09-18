@@ -23,12 +23,13 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
+          distribution: temurin
           java-version: "17"
 
-      - name: Install dependencies
+      - name: Install Linux dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
             zip \
@@ -50,28 +51,33 @@ jobs:
           python -m pip install buildozer
           python -m pip install "cython<3"
 
-      - name: Check files
+      - name: Check project
         run: |
-          echo "===== FILES ====="
-          ls -lah
-          echo "================="
+          echo "===== PROJECT ====="
+          ls -lah calculator_android
 
-          test -f main.py
-          test -f buildozer.spec
+          test -f calculator_android/main.py
+          test -f calculator_android/buildozer.spec
 
-          echo "main.py OK"
-          echo "buildozer.spec OK"
+          echo "Project is OK"
+
+      - name: Clean old Android build
+        run: |
+          rm -rf ~/.buildozer
+          rm -rf calculator_android/.buildozer
+          rm -rf calculator_android/bin
+
+          echo "Old Android build removed"
 
       - name: Build APK
-        env:
-          P4A_RELEASE_KEYSTORE: ""
+        working-directory: calculator_android
         run: |
-          buildozer -v android debug
+          yes | buildozer -v android debug
 
-      - name: Show APK
+      - name: Find APK
         if: always()
         run: |
-          echo "===== APK ====="
+          echo "===== APK FILES ====="
           find . -type f -name "*.apk" -print
 
       - name: Upload APK
@@ -79,5 +85,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: calculator-apk
-          path: bin/*.apk
+          path: calculator_android/bin/*.apk
           if-no-files-found: error
