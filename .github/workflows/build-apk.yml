@@ -8,18 +8,93 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build APK
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          command: buildozer android debug
-          buildozer_version: stable
+          python-version: "3.11"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            python3-pip \
+            autoconf \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo5 \
+            cmake \
+            libffi-dev \
+            libssl-dev \
+            automake
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install buildozer
+          python -m pip install "cython<3"
+
+      - name: Find project
+        run: |
+          echo "===== PROJECT FILES ====="
+          find . -maxdepth 3 -type f | sort
+
+          SPEC=$(find . -name "buildozer.spec" -type f | head -1)
+
+          if [ -z "$SPEC" ]; then
+            echo "ERROR: buildozer.spec not found"
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SPEC")
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          echo "Project:"
+          echo "$PROJECT_DIR"
+
+      - name: Check project
+        run: |
+          cd "$PROJECT_DIR"
+
+          echo "===== PROJECT ====="
+          ls -lah
+
+          test -f main.py
+          test -f buildozer.spec
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+
+          buildozer -v android debug
+
+      - name: Find APK
+        if: always()
+        run: |
+          echo "===== APK ====="
+          find . -type f -name "*.apk" -print
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: calculator-apk
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: "**/bin/*.apk"
+          if-no-files-found: error
