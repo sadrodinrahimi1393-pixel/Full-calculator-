@@ -22,24 +22,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android packages
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
-      - name: Check AIDL
-        run: |
-          echo "Checking AIDL..."
-          ls -la "$ANDROID_HOME/build-tools/35.0.0/"
-          test -f "$ANDROID_HOME/build-tools/35.0.0/aidl"
-          echo "AIDL FOUND!"
-
-      - name: Install Linux dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -84,7 +67,7 @@ jobs:
           test -f main.py
           test -f buildozer.spec
 
-      - name: Clean old Buildozer files
+      - name: Clean Buildozer
         run: |
           rm -rf "$PROJECT_DIR/.buildozer"
           rm -rf "$PROJECT_DIR/bin"
@@ -93,12 +76,11 @@ jobs:
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
-          buildozer -v android debug
+          yes | buildozer -v android debug
 
       - name: Find APK
         if: always()
         run: |
-          echo "===== APK FILES ====="
           find . -type f -name "*.apk" -print
 
       - name: Upload APK
